@@ -1,0 +1,10 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:tools="http://schemas.android.com/tools"
+style="@style/CustomFrameLayout"
+tools:context=".MainActivity$PlaceholderFragment">
+
+<GridView
+    style="@style/CustomGridView"
+    android:id="@+id/gridview_movieposter" />
+
+</FrameLayout>
