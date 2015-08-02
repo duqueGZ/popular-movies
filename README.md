@@ -9,8 +9,10 @@ once you have the API KEY, it would be needed to replace 'PLACE_API_KEY_HERE' pl
 ('themoviedb_api_key' string value) by your real and valid API KEY value:
 
 app/src/main/res/values/strings.xml:
+```xml
 <resources>
     <string name="app_name">Popular Movies</string>
     <string name="action_settings">Settings</string>
     <string name="themoviedb_api_key" translatable="false">PLACE_API_KEY_HERE</string> <!--put here your API KEY -->
 </resources>
+```
