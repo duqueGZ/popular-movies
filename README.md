@@ -12,7 +12,8 @@ app/src/main/res/values/strings.xml:
 ```xml
 <resources>
     <string name="app_name">Popular Movies</string>
-    <string name="action_settings">Settings</string>
+    ...
     <string name="themoviedb_api_key" translatable="false">PLACE_API_KEY_HERE</string> <!--put here your API KEY -->
+    ...
 </resources>
 ```
