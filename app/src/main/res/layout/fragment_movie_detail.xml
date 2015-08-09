@@ -1,0 +1,102 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/CustomMatchParentView">
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        tools:context="com.udacity.nanodegree.android.popularmovies.MovieDetailFragment"
+        style="@style/CustomLayout"
+        android:orientation="vertical">
+        <TextView
+            style="@style/CustomLargeBoldTextView"
+            android:id="@+id/movieOriginalTitle"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            style="@style/CustomMatchParentView"
+            android:layout_marginBottom="10dp"
+            android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/moviePoster"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight=".40"
+                android:layout_marginRight="15dp"
+                android:adjustViewBounds="true"
+                android:scaleType="fitStart" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight=".60"
+                android:orientation="vertical">
+                <TextView
+                    style="@style/CustomRatingTextView"
+                    android:id="@+id/movieRating" />
+
+                <LinearLayout
+                    style="@style/CustomWrapContentView"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar1"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar2"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar3"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar4"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar5"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar6"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar7"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar8"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar9"
+                        android:src="@drawable/star0" />
+                    <ImageView
+                        style="@style/CustomWrapContentView"
+                        android:id="@+id/movieRatingStar10"
+                        android:src="@drawable/star0" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/CustomMediumTextView"
+                    android:id="@+id/movieReleaseLabel"
+                    android:text="@string/release_label"/>
+
+                <TextView
+                    style="@style/CustomMediumItalicTextView"
+                    android:id="@+id/movieReleaseDate" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            style="@style/CustomSmallBoldTextView"
+            android:id="@+id/movieOverviewLabel"
+            android:text="@string/overview_label"/>
+
+        <WebView
+            style="@style/CustomWrapContentView"
+            android:id="@+id/movieOverview"
+            android:layout_below="@+id/movieOverviewLabel" />
+    </LinearLayout>
+</ScrollView>

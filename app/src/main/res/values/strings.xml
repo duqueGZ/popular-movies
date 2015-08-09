@@ -1,5 +1,32 @@
 <resources>
-    <string name="app_name">Popular Movies</string>
+    <!-- General strings -->
+    <string name="app_name" translatable="false">Popular Movies</string>
+    <string name="themoviedb_api_key" translatable="false">***REMOVED***</string>
+
+    <!-- Menus strings -->
     <string name="action_settings">Settings</string>
-    <string name="themoviedb_api_key" translatable="false">PLACE_API_KEY_HERE</string>
+    <string name="action_share">Share</string>
+
+    <!-- Activities and Fragments strings -->
+    <string name="title_activity_movie_detail">Movie Details</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="release_label">Release:</string>
+    <string name="overview_label">Overview:</string>
+
+    <!-- Settings strings -->
+    <string name="pref_sort_order_label">Sort by</string>
+    <string name="pref_sort_order_key" translatable="false">sort_order</string>
+    <string name="pref_sort_order_popularity_label">Most popular</string>
+    <string name="pref_sort_order_rating_label">Highest rated</string>
+    <string name="pref_sort_order_popularity" translatable="false">popularity.desc</string>
+    <string name="pref_sort_order_rating" translatable="false">vote_average.desc</string>
+
+    <!-- Default values for missing data in API calls responses -->
+    <string name="no_original_title_found">ORIGINAL TITLE NOT FOUND</string>
+    <string name="no_overview_found">NO OVERVIEW FOUND</string>
+
+    <!-- Other strings -->
+    <string name="share_movie_base_message">Hi! Check this movie. It looks great!! </string>
+    <string name="share_movie_hashtag" translatable="false">#PopularMoviesApp</string>
+    <string name="sdf_format">yyyy-MM-dd</string>
 </resources>

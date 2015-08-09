@@ -1,14 +1,18 @@
 package com.udacity.nanodegree.android.popularmovies;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
@@ -25,11 +29,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.InvalidParameterException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class MoviesFragment extends Fragment {
 
     private static final String LOG_TAG = MoviesFragment.class.getSimpleName();
-    private ArrayAdapter<String> mMoviePostersAdapter;
+
+    private ArrayAdapter<Movie> mMovieAdapter;
+    private FetchMoviesTask mAsyncTask;
 
     public MoviesFragment() {
     }
@@ -39,25 +49,79 @@ public class MoviesFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        this.mMoviePostersAdapter = new CustomImageArrayAdapter(this.getActivity(), R.layout.grid_item_movie, R.id.grid_item_movie_imageview);
+        mMovieAdapter = new CustomMovieArrayAdapter(getActivity(), R.layout.grid_item_movie,
+                R.id.grid_item_movie_poster);
+        GridView moviePostersGridView = (GridView)rootView.findViewById(R.id.gridview_movies);
+        moviePostersGridView.setAdapter(mMovieAdapter);
+        moviePostersGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView adapterView, View view, int i, long l) {
 
-        GridView moviePostersGridView = (GridView)rootView.findViewById(R.id.gridview_movieposter);
-        moviePostersGridView.setAdapter(this.mMoviePostersAdapter);
+                Intent detailActivityIntent = new Intent(MoviesFragment.this.getActivity(),
+                        MovieDetailActivity.class);
+                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_ID,
+                        MoviesFragment.this.mMovieAdapter.getItem(i).getId());
+                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_ORIGINAL_TITLE,
+                        MoviesFragment.this.mMovieAdapter.getItem(i).getOriginalTitle());
+                String posterPath = MoviesFragment.this.mMovieAdapter.getItem(i).getPosterPath();
+                if (posterPath != null) {
+                    detailActivityIntent.putExtra(Movie.TMDB_MOVIE_POSTER_PATH, posterPath);
+                }
+                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_OVERVIEW,
+                        MoviesFragment.this.mMovieAdapter.getItem(i).getOverview());
+                Double voteAverage = MoviesFragment.this.mMovieAdapter.getItem(i).getVoteAverage();
+                if (voteAverage != null) {
+                    detailActivityIntent.putExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE, voteAverage);
+                }
+                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_RELEASE_DATE,
+                        MoviesFragment.this.mMovieAdapter.getItem(i).getReleaseDateString());
+                MoviesFragment.this.startActivity(detailActivityIntent);
+            }
+        });
 
-        new FetchMoviesTask().execute();
+        //Load movie data from themoviedb.org
+        updateMoviesInfo();
 
         return rootView;
     }
 
-    private class CustomImageArrayAdapter extends ArrayAdapter<String> {
+    @Override
+    public void onStart() {
+        super.onStart();
 
-        private final String LOG_TAG = CustomImageArrayAdapter.class.getSimpleName();
+        updateMoviesInfo();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if(mAsyncTask!=null) {
+            mAsyncTask.cancel(true);
+            mAsyncTask = null;
+        }
+    }
+
+    private void updateMoviesInfo() {
+        //Get sort_order preference value. By default, use sort by popularity option
+        SharedPreferences preferences = PreferenceManager
+                .getDefaultSharedPreferences(getActivity());
+        String sortOrder = preferences.getString(getString(R.string.pref_sort_order_key),
+                getString(R.string.pref_sort_order_popularity));
+
+        mAsyncTask = new FetchMoviesTask();
+        mAsyncTask.execute(sortOrder);
+    }
+
+    private class CustomMovieArrayAdapter extends ArrayAdapter<Movie> {
+
+        private final String LOG_TAG = CustomMovieArrayAdapter.class.getSimpleName();
+
         private Context mContext;
         private int mResource;
         private int mFieldId;
         private LayoutInflater mInflater;
 
-        public CustomImageArrayAdapter(Context context, int resourceId, int imageViewResourceId) {
+        public CustomMovieArrayAdapter(Context context, int resourceId, int imageViewResourceId) {
             super(context, resourceId, imageViewResourceId);
             this.mContext = context;
             this.mResource = resourceId;
@@ -73,60 +137,68 @@ public class MoviesFragment extends Fragment {
             ImageView image;
 
             if (convertView == null) {
-                view = this.mInflater.inflate(this.mResource, parent, false);
+                view = mInflater.inflate(mResource, parent, false);
             } else {
                 view = convertView;
             }
 
             try {
-                if (this.mFieldId == 0) {
+                if (mFieldId == 0) {
                     //  If no custom field is assigned, assume the whole resource is an ImageView
                     image = (ImageView) view;
                 } else {
                     //  Otherwise, find the ImageView field within the layout
-                    image = (ImageView) view.findViewById(this.mFieldId);
+                    image = (ImageView) view.findViewById(mFieldId);
                 }
             } catch (ClassCastException e) {
-                Log.e(this.LOG_TAG, "You must supply a resource ID for an ImageView");
-                throw new IllegalStateException(
-                        "CustomImageArrayAdapter requires the resource ID to be an ImageView", e);
+                throw new IllegalStateException("CustomMovieArrayAdapter requires the resource ID" +
+                        " to be an ImageView", e);
             }
 
-            String item = getItem(position);
-            Picasso.with(this.mContext).load(item).into(image);
+            String posterPath = getItem(position).getPosterPath();
+            if (posterPath!=null) {
+                Picasso.with(mContext).load(posterPath).into(image);
+            } else {
+                Picasso.with(mContext).load(R.drawable.no_photo_movie_poster).into(image);
+            }
 
             return view;
         }
     }
 
-    private class FetchMoviesTask extends AsyncTask<Void, Void, String[]> {
+    private class FetchMoviesTask extends AsyncTask<String, Void, Movie[]> {
 
         private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
         private final String POPULAR_MOVIES_BASE_URL = "http://api.themoviedb.org/3/discover/movie?";
         private final String SORT_PARAM = "sort_by";
+        private final String VOTE_COUNT_PARAM = "vote_count.gte";
         private final String API_KEY_PARAM = "api_key";
-
+        //Popular Movies does not consider movies with a lower number of votes than MIN_VOTE_COUNT
+        private final String MIN_VOTE_COUNT = "100";
+        private final String TMDB_MOVIE_RELEASE_DATE_FORMAT = "yyyy-MM-dd";
+        private final SimpleDateFormat TMDB_MOVIE_RELEASE_DATE_SDF =
+                new SimpleDateFormat(TMDB_MOVIE_RELEASE_DATE_FORMAT);
         @Override
-        protected String[] doInBackground(Void... params) {
-
-            // These two need to be declared outside the try/catch
-            // so that they can be closed in the finally block.
+        protected Movie[] doInBackground(String... params) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
-
-            // Will contain the raw JSON response as a string.
             String moviesJsonStr = null;
-
-            String sortOption = "popularity.desc";
             String apiKey = getString(R.string.themoviedb_api_key);
 
             try {
                 // Construct the URL for the themoviedb.org query (/discover/movie endpoint)
-                // http://docs.themoviedb.apiary.io/#
-                Uri.Builder uriBuilder = Uri.parse(this.POPULAR_MOVIES_BASE_URL).buildUpon();
-                uriBuilder.appendQueryParameter(this.SORT_PARAM, sortOption)
-                        .appendQueryParameter(this.API_KEY_PARAM, apiKey);
-                URL url = new URL(uriBuilder.build().toString());
+                // http://docs.themoviedb.apiary.io/#reference/discover/discovermovie
+                if (params.length!=1) {
+                    throw new InvalidParameterException("ERROR. Not valid parameter (sort order) " +
+                            " passed to " + LOG_TAG);
+                }
+                String sortOrder = params[0];
+
+                URL url = new URL(Uri.parse(POPULAR_MOVIES_BASE_URL).buildUpon()
+                        .appendQueryParameter(SORT_PARAM, sortOrder)
+                        .appendQueryParameter(VOTE_COUNT_PARAM, MIN_VOTE_COUNT)
+                        .appendQueryParameter(API_KEY_PARAM, apiKey)
+                        .build().toString());
 
                 // Create the request to themoviedb.org, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -140,14 +212,11 @@ public class MoviesFragment extends Fragment {
                     // Nothing to do.
                     return null;
                 }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
 
+                reader = new BufferedReader(new InputStreamReader(inputStream));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
+                    buffer.append(line);
                 }
 
                 if (buffer.length() == 0) {
@@ -156,21 +225,21 @@ public class MoviesFragment extends Fragment {
                 }
                 moviesJsonStr = buffer.toString();
 
-                return this.getMoviesDataFromJson(moviesJsonStr);
+                return getMoviesDataFromJson(moviesJsonStr);
             } catch (IOException e) {
-                Log.e(this.LOG_TAG, "Error ", e);
-                // If the code didn't successfully get the movie data, there's no point in attempting
-                // to parse it.
+                Log.e(LOG_TAG, "Error ", e);
+                // If the code didn't successfully get the movie data, there's no point in
+                // attempting to parse it.
                 return null;
             } catch (JSONException je) {
-                Log.e(this.LOG_TAG, je.getMessage(), je);
+                Log.e(LOG_TAG, je.getMessage(), je);
                 return null;
             } finally {
                 if (reader != null) {
                     try {
                         reader.close();
-                    } catch (final IOException e) {
-                        Log.e(this.LOG_TAG, "Error closing stream", e);
+                    } catch (final IOException ioe) {
+                        Log.e(LOG_TAG, "Error closing stream", ioe);
                     }
                 }
                 if (urlConnection != null) {
@@ -180,42 +249,97 @@ public class MoviesFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] strings) {
-            MoviesFragment.this.mMoviePostersAdapter.clear();
-            for (int i=0; i<strings.length; i++) {
-                MoviesFragment.this.mMoviePostersAdapter.add(strings[i]);
+        protected void onPostExecute(Movie[] movies) {
+            MoviesFragment.this.mMovieAdapter.clear();
+            if (movies!=null) {
+                for (int i = 0; i < movies.length; i++) {
+                    MoviesFragment.this.mMovieAdapter.add(movies[i]);
+                }
             }
         }
 
         /**
          * Take the String representing the complete obtained movies data in JSON Format and
-         * pull out the data we need
+         * pull out the needed data
          */
-        private String[] getMoviesDataFromJson(String moviesJsonStr)
-                throws JSONException {
+        private Movie[] getMoviesDataFromJson(String moviesJsonStr) throws JSONException {
 
-            // This is the base URL for all poster images
+            // Base URL for all poster images
             final String TMDB_POSTER_BASE_URL = "http://image.tmdb.org/t/p/";
-            // This is the image size used in Popular Movies app
+            // Image size that is going to be requested
             final String TMDB_IMAGE_SIZE = "w185";
-            // These are the names of the JSON objects that need to be extracted.
-            final String TMDB_RESULTS = "results";
-            final String TMDB_POSTER_PATH = "poster_path";
 
+            JSONArray moviesArray = new JSONObject(moviesJsonStr).getJSONArray(Movie.TMDB_RESULTS);
+            Movie[] resultMovies = new Movie[moviesArray.length()];
 
-            JSONObject forecastJson = new JSONObject(moviesJsonStr);
-            JSONArray moviesArray = forecastJson.getJSONArray(TMDB_RESULTS);
-
-            String[] resultStrs = new String[moviesArray.length()];
             for(int i = 0; i < moviesArray.length(); i++) {
 
                 // Get the JSON object representing the movie
                 JSONObject movieResult = moviesArray.getJSONObject(i);
 
-                resultStrs[i] = TMDB_POSTER_BASE_URL + TMDB_IMAGE_SIZE + movieResult.getString(TMDB_POSTER_PATH);
+                // If some of the retrieved movies have no id, discard it because it's going
+                // to be no possible to do any further needed API call for them
+                if (!movieResult.has(Movie.TMDB_MOVIE_ID)) {
+                    continue;
+                }
+
+                // Get required movie data, checking for possible missing and null values
+                int movieId = movieResult.getInt(Movie.TMDB_MOVIE_ID);
+                String movieOriginalTitle = checkForMissingOrNullValues(movieResult,
+                        Movie.TMDB_MOVIE_ORIGINAL_TITLE,
+                        getString(R.string.no_original_title_found));
+                String posterPath = checkForMissingOrNullValues(movieResult,
+                        Movie.TMDB_MOVIE_POSTER_PATH, (String)null);
+                String movieOverview = checkForMissingOrNullValues(movieResult,
+                        Movie.TMDB_MOVIE_OVERVIEW,
+                        getString(R.string.no_overview_found));
+                Double movieVoteAverage = checkForMissingOrNullValues(movieResult,
+                        Movie.TMDB_MOVIE_VOTE_AVERAGE, (Double)null);
+                Date movieReleaseDate = checkForMissingOrNullValues(movieResult,
+                        Movie.TMDB_MOVIE_RELEASE_DATE, (Date)null);
+
+                resultMovies[i] = new Movie(movieId, movieOriginalTitle,
+                        (posterPath!=null) ?
+                                TMDB_POSTER_BASE_URL + TMDB_IMAGE_SIZE +
+                                        movieResult.getString(Movie.TMDB_MOVIE_POSTER_PATH) : null,
+                        movieOverview, movieVoteAverage, movieReleaseDate,
+                        getString(R.string.sdf_format));
             }
 
-            return resultStrs;
+            return resultMovies;
+        }
+
+        private String checkForMissingOrNullValues(JSONObject jsonObject, String fieldName,
+                                                   String defaultValue) throws JSONException {
+            if ((jsonObject.has(fieldName)) && (!jsonObject.getString(fieldName).equals(""))
+                && (!jsonObject.getString(fieldName).equals("null"))){
+                return jsonObject.getString(fieldName);
+            } else {
+                return defaultValue;
+            }
+        }
+
+        private Double checkForMissingOrNullValues(JSONObject jsonObject, String fieldName,
+                                                   Double defaultValue) throws JSONException {
+            if (jsonObject.has(fieldName)) {
+                return jsonObject.getDouble(fieldName);
+            } else {
+                return defaultValue;
+            }
+        }
+
+        private Date checkForMissingOrNullValues(JSONObject jsonObject, String fieldName,
+                                                   Date defaultValue) throws JSONException {
+            if (jsonObject.has(fieldName)) {
+                try {
+                    return TMDB_MOVIE_RELEASE_DATE_SDF.parse(jsonObject.getString(fieldName));
+                } catch (ParseException e) {
+                    Log.w(LOG_TAG, "Release date could not been correctly parsed");
+                    return defaultValue;
+                }
+            } else {
+                return defaultValue;
+            }
         }
     }
 }

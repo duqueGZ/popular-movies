@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Menus strings -->
+    <string name="action_settings">Ajustes</string>
+    <string name="action_share">Compartir</string>
+
+    <!-- Activities and Fragments strings -->
+    <string name="title_activity_movie_detail">Detalles de la película</string>
+    <string name="title_activity_settings">Ajustes</string>
+    <string name="release_label">Estreno:</string>
+    <string name="overview_label">Sinopsis:</string>
+
+    <!-- Settings strings -->
+    <string name="pref_sort_order_label">Ordenar por</string>
+    <string name="pref_sort_order_popularity_label">Más populares</string>
+    <string name="pref_sort_order_rating_label">Mejor puntuadas</string>
+
+    <!-- Default values for missing data in API calls responses -->
+    <string name="no_original_title_found">TÍTULO ORIGINAL NO ENCONTRADO</string>
+    <string name="no_overview_found">SINOPSIS NO ENCONTRADA</string>
+
+    <!-- Other strings -->
+    <string name="share_movie_base_message">Hola! Mira esta película. ¡Tiene buena pinta!</string>
+    <string name="sdf_format">dd-MM-yyyy</string>
+</resources>
