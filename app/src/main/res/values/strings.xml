@@ -1,7 +1,7 @@
 <resources>
     <!-- General strings -->
     <string name="app_name" translatable="false">Popular Movies</string>
-    <string name="themoviedb_api_key" translatable="false">***REMOVED***</string>
+    <string name="themoviedb_api_key" translatable="false">PLACE_API_KEY_HERE</string>
 
     <!-- Menus strings -->
     <string name="action_settings">Settings</string>
