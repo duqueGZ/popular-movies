@@ -1,5 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here.-->
@@ -29,6 +29,12 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">135dp</item>
         <item name="android:scaleType">centerCrop</item>
+    </style>
+
+    <style name="CustomCenterImageView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:scaleType">centerInside</item>
     </style>
 
     <style name="CustomLargeBoldTextView" parent="CustomWrapContentView">
@@ -63,5 +69,4 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">match_parent</item>
     </style>
-
 </resources>

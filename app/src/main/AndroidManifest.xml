@@ -35,5 +35,4 @@
                 android:value="com.udacity.nanodegree.android.popularmovies.MainActivity" />
         </activity>
     </application>
-
 </manifest>

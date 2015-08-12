@@ -1,10 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     style="@style/CustomLayout"
     tools:context="com.udacity.nanodegree.android.popularmovies.MoviesFragment">
 
-<GridView
-    style="@style/CustomGridView"
-    android:id="@+id/gridview_movies" />
+    <android.support.v4.widget.SwipeRefreshLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        style="@style/CustomMatchParentView"
+        android:id="@+id/swipe_container">
+        <GridView
+            style="@style/CustomGridView"
+            android:id="@+id/gridview_movies" />
+    </android.support.v4.widget.SwipeRefreshLayout>
+
+    <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+        style="@style/CustomCenterImageView"
+        android:id="@+id/no_movie_data_imageview"
+        android:visibility="invisible"
+        android:src="@drawable/no_data_retrieved"/>
 
 </FrameLayout>
