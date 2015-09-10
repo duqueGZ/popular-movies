@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.udacity.nanodegree.android.popularmovies"
-        minSdkVersion 10
+        minSdkVersion 15
         targetSdkVersion 22
         versionCode 1
         versionName "1.0"
@@ -14,6 +14,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -28,4 +29,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile 'com.squareup.picasso:picasso:2.5.2'
     compile 'com.android.support:support-v4:22.2.1'
+    compile 'com.jakewharton:butterknife:7.0.1'
 }

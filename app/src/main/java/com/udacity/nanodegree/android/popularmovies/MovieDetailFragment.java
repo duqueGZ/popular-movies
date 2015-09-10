@@ -19,6 +19,11 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.List;
+
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 public class MovieDetailFragment extends Fragment {
 
     private static final String LOG_TAG = MovieDetailFragment.class.getSimpleName();
@@ -26,12 +31,16 @@ public class MovieDetailFragment extends Fragment {
     private static final String HTML_TEXT_FORMAT =
             "<html><body style=\"text-align:justify\"> %s </body></Html>";
 
-    private ImageView mMoviePoster;
-    private ImageView[] mMovieRatingStars;
-    private TextView mMovieOriginalTitle;
-    private TextView mMovieReleaseDate;
-    private WebView mMovieOverview;
-    private TextView mMovieRating;
+    @Bind({R.id.movieRatingStar1, R.id.movieRatingStar2, R.id.movieRatingStar3,
+           R.id.movieRatingStar4, R.id.movieRatingStar5, R.id.movieRatingStar6,
+           R.id.movieRatingStar7, R.id.movieRatingStar8, R.id.movieRatingStar9,
+           R.id.movieRatingStar10})
+    List<ImageView> mMovieRatingStars;
+    @Bind(R.id.moviePoster) ImageView mMoviePoster;
+    @Bind(R.id.movieOriginalTitle) TextView mMovieOriginalTitle;
+    @Bind(R.id.movieReleaseDate) TextView mMovieReleaseDate;
+    @Bind(R.id.movieOverview) WebView mMovieOverview;
+    @Bind(R.id.movieRating) TextView mMovieRating;
     private String mMovieTmdbUrl;
 
     public MovieDetailFragment() {
@@ -49,26 +58,11 @@ public class MovieDetailFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_movie_detail, container, false);
-        mMoviePoster = (ImageView)rootView.findViewById(R.id.moviePoster);
-        mMovieOriginalTitle = (TextView)rootView.findViewById(R.id.movieOriginalTitle);
-        mMovieReleaseDate = (TextView)rootView.findViewById(R.id.movieReleaseDate);
-        mMovieOverview = (WebView)rootView.findViewById(R.id.movieOverview);
-        mMovieRating = (TextView)rootView.findViewById(R.id.movieRating);
-        mMovieRatingStars = new ImageView[10];
-        mMovieRatingStars[0] = (ImageView)rootView.findViewById(R.id.movieRatingStar1);
-        mMovieRatingStars[1] = (ImageView)rootView.findViewById(R.id.movieRatingStar2);
-        mMovieRatingStars[2] = (ImageView)rootView.findViewById(R.id.movieRatingStar3);
-        mMovieRatingStars[3] = (ImageView)rootView.findViewById(R.id.movieRatingStar4);
-        mMovieRatingStars[4] = (ImageView)rootView.findViewById(R.id.movieRatingStar5);
-        mMovieRatingStars[5] = (ImageView)rootView.findViewById(R.id.movieRatingStar6);
-        mMovieRatingStars[6] = (ImageView)rootView.findViewById(R.id.movieRatingStar7);
-        mMovieRatingStars[7] = (ImageView)rootView.findViewById(R.id.movieRatingStar8);
-        mMovieRatingStars[8] = (ImageView)rootView.findViewById(R.id.movieRatingStar9);
-        mMovieRatingStars[9] = (ImageView)rootView.findViewById(R.id.movieRatingStar10);
+        ButterKnife.bind(this, rootView);
 
         Intent activityIntent = getActivity().getIntent();
         if (activityIntent != null) {
-            if ((activityIntent != null) && (activityIntent.hasExtra(Movie.TMDB_MOVIE_ID))) {
+            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_ID)) {
                 int movieId = activityIntent.getIntExtra(Movie.TMDB_MOVIE_ID, 0);
                 mMovieTmdbUrl = TMDB_MOVIE_BASE_URL + Integer.valueOf(movieId).toString();
             }
@@ -92,12 +86,13 @@ public class MovieDetailFragment extends Fragment {
             }
             if (activityIntent.hasExtra(Movie.TMDB_MOVIE_OVERVIEW)) {
                 mMovieOverview.loadData(String.format(HTML_TEXT_FORMAT, activityIntent
-                        .getStringExtra(Movie.TMDB_MOVIE_OVERVIEW)), "text/html", "utf-8");
+                        .getStringExtra(Movie.TMDB_MOVIE_OVERVIEW)), "text/html; charset=utf-8",
+                        "UTF-8");
                 mMovieOverview.setBackgroundColor(Color.TRANSPARENT);
             }
             if (activityIntent.hasExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE)) {
-                Double voteAverage = Double.valueOf(activityIntent
-                                .getDoubleExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE, 0));
+                Double voteAverage = activityIntent
+                                .getDoubleExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE, 0);
                         mMovieRating.setText(voteAverage.toString());
                 configureMovieRatingStars(voteAverage);
             }
@@ -125,6 +120,12 @@ public class MovieDetailFragment extends Fragment {
         }
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
+    }
+
     private Intent createShareMovieIntent() {
         Intent shareIntent = new Intent(Intent.ACTION_SEND);
         shareIntent.setType("text/plain");
@@ -137,31 +138,36 @@ public class MovieDetailFragment extends Fragment {
     private void configureMovieRatingStars(Double voteAverage) {
 
         int integerPart = (int) Math.floor(voteAverage.doubleValue());
-        double decimalPart = voteAverage.doubleValue() - integerPart;
+        double decimalPart = voteAverage - integerPart;
 
         int i;
         for (i=0;i<integerPart;i++) {
-            Picasso.with(getActivity()).load(R.drawable.star1).into(mMovieRatingStars[i]);
+            Picasso.with(getActivity()).load(R.drawable.star1).into(mMovieRatingStars.get(i));
         }
 
+        int drawableId = -1;
         if (decimalPart>=0.9) {
-            Picasso.with(getActivity()).load(R.drawable.star09).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star09;
         } else if (decimalPart>=0.8) {
-            Picasso.with(getActivity()).load(R.drawable.star08).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star08;
         } else if (decimalPart>=0.7) {
-            Picasso.with(getActivity()).load(R.drawable.star07).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star07;
         } else if (decimalPart>=0.6) {
-            Picasso.with(getActivity()).load(R.drawable.star06).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star06;
         } else if (decimalPart>=0.5) {
-            Picasso.with(getActivity()).load(R.drawable.star05).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star05;
         } else if (decimalPart>=0.4) {
-            Picasso.with(getActivity()).load(R.drawable.star04).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star04;
         } else if (decimalPart>=0.3) {
-            Picasso.with(getActivity()).load(R.drawable.star03).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star03;
         } else if (decimalPart>=0.2) {
-            Picasso.with(getActivity()).load(R.drawable.star02).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star02;
         } else if (decimalPart>=0.1) {
-            Picasso.with(getActivity()).load(R.drawable.star01).into(mMovieRatingStars[i]);
+            drawableId = R.drawable.star01;
         }
+        if (drawableId != -1) {
+            Picasso.with(getActivity()).load(drawableId).into(mMovieRatingStars.get(i));
+        }
+
     }
 }

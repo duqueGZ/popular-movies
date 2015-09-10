@@ -36,17 +36,20 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 public class MoviesFragment extends Fragment
         implements SwipeRefreshLayout.OnRefreshListener {
 
     private static final String MOVIES_KEY = "MOVIES";
     private static final String QUERY_PREFERENCE_KEY = "QUERY_PREF";
 
+    @Bind(R.id.gridview_movies) GridView mMoviePostersGridView;
+    @Bind(R.id.no_movie_data_imageview) ImageView mNoDataRetrieved;
+    @Bind(R.id.swipe_container) SwipeRefreshLayout mSwipeLayout;
     private ArrayAdapter<Movie> mMovieAdapter;
     private String mQueryPreference;
-    private GridView mMoviePostersGridView;
-    private ImageView mNoDataRetrieved;
-    private SwipeRefreshLayout mSwipeLayout;
     private FetchMoviesTask mAsyncTask;
 
     public MoviesFragment() {
@@ -71,7 +74,6 @@ public class MoviesFragment extends Fragment
                         .containsKey(MOVIES_KEY))) {
                     ArrayList<Movie> movies = (ArrayList<Movie>)savedInstanceState.get(MOVIES_KEY);
                     populateMovieAdapter(movies);
-                    return;
                 }
             }
         }
@@ -81,8 +83,7 @@ public class MoviesFragment extends Fragment
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-        mNoDataRetrieved = (ImageView)rootView.findViewById(R.id.no_movie_data_imageview);
-        mMoviePostersGridView = (GridView)rootView.findViewById(R.id.gridview_movies);
+        ButterKnife.bind(this, rootView);
         mMoviePostersGridView.setAdapter(mMovieAdapter);
         mMoviePostersGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -109,7 +110,6 @@ public class MoviesFragment extends Fragment
                 MoviesFragment.this.startActivity(detailActivityIntent);
             }
         });
-        mSwipeLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.swipe_container);
         mSwipeLayout.setOnRefreshListener(this);
         mSwipeLayout.setColorSchemeResources(R.color.primary, R.color.accent, R.color.primary_dark);
 
@@ -152,8 +152,15 @@ public class MoviesFragment extends Fragment
         outState.putString(QUERY_PREFERENCE_KEY, mQueryPreference);
     }
 
-    @Override public void onRefresh() {
+    @Override
+    public void onRefresh() {
         updateMoviesInfo(getCurrentQueryPreference());
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
     }
 
     private String getCurrentQueryPreference() {
