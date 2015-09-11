@@ -1,24 +1,28 @@
 package com.udacity.nanodegree.android.popularmovies;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.Toast;
 
-import com.squareup.picasso.Picasso;
+import com.udacity.nanodegree.android.popularmovies.data.MovieContract;
+import com.udacity.nanodegree.android.popularmovies.data.MovieProvider;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,26 +37,42 @@ import java.net.URL;
 import java.security.InvalidParameterException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.Vector;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
 public class MoviesFragment extends Fragment
-        implements SwipeRefreshLayout.OnRefreshListener {
+        implements SwipeRefreshLayout.OnRefreshListener, LoaderManager.LoaderCallbacks<Cursor> {
 
-    private static final String MOVIES_KEY = "MOVIES";
+    private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
+
     private static final String QUERY_PREFERENCE_KEY = "QUERY_PREF";
+    private static final int MOVIE_LOADER_ID = 0;
+    static final String[] MOVIE_COLUMNS = {
+            MovieContract.MovieEntry._ID,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH
+    };
+    // These indices are tied to MOVIE_COLUMNS. If MOVIE_COLUMNS changes, these must change too.
+    static final int COL_ID = 0;
+    static final int COL_POSTER_PATH = 1;
 
     @Bind(R.id.gridview_movies) GridView mMoviePostersGridView;
     @Bind(R.id.no_movie_data_imageview) ImageView mNoDataRetrieved;
     @Bind(R.id.swipe_container) SwipeRefreshLayout mSwipeLayout;
-    private ArrayAdapter<Movie> mMovieAdapter;
+
+    private MovieAdapter mMovieAdapter;
     private String mQueryPreference;
     private FetchMoviesTask mAsyncTask;
 
     public MoviesFragment() {
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(MOVIE_LOADER_ID, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -61,20 +81,9 @@ public class MoviesFragment extends Fragment
 
         this.setHasOptionsMenu(Boolean.TRUE);
 
-        String currentQueryPreference = getCurrentQueryPreference();
-        mQueryPreference = currentQueryPreference;
-        mMovieAdapter = new CustomMovieArrayAdapter(getActivity(), R.layout.grid_item_movie,
-                R.id.grid_item_movie_poster);
         if (savedInstanceState != null) {
             if (savedInstanceState.containsKey(QUERY_PREFERENCE_KEY)) {
                 mQueryPreference = savedInstanceState.getString(QUERY_PREFERENCE_KEY);
-                // If the sort order shared preference has changed, it's necessary to call
-                // TMDB API again in order to retrieve the new desired data
-                if ((currentQueryPreference.equals(mQueryPreference)) && (savedInstanceState
-                        .containsKey(MOVIES_KEY))) {
-                    ArrayList<Movie> movies = (ArrayList<Movie>)savedInstanceState.get(MOVIES_KEY);
-                    populateMovieAdapter(movies);
-                }
             }
         }
     }
@@ -84,30 +93,19 @@ public class MoviesFragment extends Fragment
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
         ButterKnife.bind(this, rootView);
+        mMovieAdapter = new MovieAdapter(getActivity(), null, 0);
         mMoviePostersGridView.setAdapter(mMovieAdapter);
         mMoviePostersGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView adapterView, View view, int i, long l) {
-
-                Intent detailActivityIntent = new Intent(MoviesFragment.this.getActivity(),
-                        MovieDetailActivity.class);
-                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_ID,
-                        MoviesFragment.this.mMovieAdapter.getItem(i).getId());
-                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_ORIGINAL_TITLE,
-                        MoviesFragment.this.mMovieAdapter.getItem(i).getOriginalTitle());
-                String posterPath = MoviesFragment.this.mMovieAdapter.getItem(i).getPosterPath();
-                if (posterPath != null) {
-                    detailActivityIntent.putExtra(Movie.TMDB_MOVIE_POSTER_PATH, posterPath);
+                Cursor cursor = (Cursor) adapterView.getItemAtPosition(i);
+                if (cursor != null) {
+                    Intent detailActivityIntent = new Intent(MoviesFragment.this.getActivity(),
+                            MovieDetailActivity.class);
+                    detailActivityIntent.setData(
+                            MovieContract.MovieEntry.buildMovieUri(cursor.getInt(COL_ID)));
+                    MoviesFragment.this.startActivity(detailActivityIntent);
                 }
-                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_OVERVIEW,
-                        MoviesFragment.this.mMovieAdapter.getItem(i).getOverview());
-                Double voteAverage = MoviesFragment.this.mMovieAdapter.getItem(i).getVoteAverage();
-                if (voteAverage != null) {
-                    detailActivityIntent.putExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE, voteAverage);
-                }
-                detailActivityIntent.putExtra(Movie.TMDB_MOVIE_RELEASE_DATE,
-                        MoviesFragment.this.mMovieAdapter.getItem(i).getReleaseDateString());
-                MoviesFragment.this.startActivity(detailActivityIntent);
             }
         });
         mSwipeLayout.setOnRefreshListener(this);
@@ -120,11 +118,10 @@ public class MoviesFragment extends Fragment
     public void onStart() {
         super.onStart();
 
-        String currentQueryPreference = getCurrentQueryPreference();
-
-        // If movie list has already been retrieved from previous saved state and query
-        // preference is still the same, avoid calling TMDB API again, as it is not needed
-        if ((mMovieAdapter.isEmpty()) || (!mQueryPreference.equals(currentQueryPreference))) {
+        String currentQueryPreference = Utility.getCurrentQueryPreference(getActivity());
+        // If the sort order shared preference has changed, it's necessary to call
+        // TMDB API again in order to retrieve the new desired data
+        if (!currentQueryPreference.equals(mQueryPreference)) {
             updateMoviesInfo(currentQueryPreference);
         }
     }
@@ -143,18 +140,12 @@ public class MoviesFragment extends Fragment
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
-        ArrayList<Movie> movies = new ArrayList<>();
-        int numMovies = mMovieAdapter.getCount();
-        for (int i=0; i<numMovies; i++) {
-            movies.add(mMovieAdapter.getItem(i));
-        }
-        outState.putParcelableArrayList(MOVIES_KEY, movies);
         outState.putString(QUERY_PREFERENCE_KEY, mQueryPreference);
     }
 
     @Override
     public void onRefresh() {
-        updateMoviesInfo(getCurrentQueryPreference());
+        updateMoviesInfo(Utility.getCurrentQueryPreference(getActivity()));
     }
 
     @Override
@@ -163,94 +154,76 @@ public class MoviesFragment extends Fragment
         ButterKnife.unbind(this);
     }
 
-    private String getCurrentQueryPreference() {
-        //Get sort_order preference value. By default, use sort by popularity option
-        SharedPreferences preferences = PreferenceManager
-                .getDefaultSharedPreferences(getActivity());
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Uri moviesUri = MovieContract.MovieEntry.CONTENT_URI;
+        String currentQueryPreference = Utility.getCurrentQueryPreference(getActivity());
+        String sortOrder;
+        if (currentQueryPreference.equals(getString(R.string.pref_sort_order_rating))) {
+            sortOrder = MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE + " DESC";
+        } else { // Popularity sort order is also the default used preference
+            sortOrder = MovieContract.MovieEntry.COLUMN_POPULARITY + " DESC";
+        }
 
-        return preferences.getString(getString(R.string.pref_sort_order_key),
-                getString(R.string.pref_sort_order_popularity));
+        return new CursorLoader(getActivity(), moviesUri, MOVIE_COLUMNS, null, null, sortOrder);
     }
 
-    private void populateMovieAdapter(ArrayList<Movie> movies) {
-        MoviesFragment.this.mMovieAdapter.clear();
-        for (int i=0; i<movies.size(); i++) {
-            MoviesFragment.this.mMovieAdapter.add(movies.get(i));
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mMovieAdapter.swapCursor(data);
+        if (data.getCount()>0) {
+            MoviesFragment.this.mMoviePostersGridView.setVisibility(View.VISIBLE);
+            MoviesFragment.this.mNoDataRetrieved.setVisibility(View.INVISIBLE);
+        } else {
+            //Movies data cannot be retrieved from DB
+            MoviesFragment.this.mMoviePostersGridView.setVisibility(View.INVISIBLE);
+            MoviesFragment.this.mNoDataRetrieved.setVisibility(View.VISIBLE);
         }
     }
 
-    private void updateMoviesInfo(String queryPreference) {
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mMovieAdapter.swapCursor(null);
+    }
+
+    public void updateMoviesInfo(String queryPreference) {
+        Log.d(LOG_TAG, "GOING TO UPDATE MOVIES INFO: " + queryPreference);
+        getLoaderManager().restartLoader(MOVIE_LOADER_ID, null, this);
         mQueryPreference = queryPreference;
-        mAsyncTask = new FetchMoviesTask();
+        mAsyncTask = new FetchMoviesTask(getActivity());
         mAsyncTask.execute(queryPreference);
     }
 
-    private class CustomMovieArrayAdapter extends ArrayAdapter<Movie> {
-
-        private Context mContext;
-        private int mResource;
-        private int mFieldId;
-        private LayoutInflater mInflater;
-
-        public CustomMovieArrayAdapter(Context context, int resourceId, int imageViewResourceId) {
-            super(context, resourceId, imageViewResourceId);
-            this.mContext = context;
-            this.mResource = resourceId;
-            this.mFieldId = imageViewResourceId;
-            this.mInflater = (LayoutInflater) context
-                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-
-            View view;
-            ImageView image;
-
-            if (convertView == null) {
-                view = mInflater.inflate(mResource, parent, false);
-            } else {
-                view = convertView;
-            }
-
-            try {
-                if (mFieldId == 0) {
-                    //  If no custom field is assigned, assume the whole resource is an ImageView
-                    image = (ImageView) view;
-                } else {
-                    //  Otherwise, find the ImageView field within the layout
-                    image = (ImageView) view.findViewById(mFieldId);
-                }
-            } catch (ClassCastException e) {
-                throw new IllegalStateException("CustomMovieArrayAdapter requires the resource ID" +
-                        " to be an ImageView", e);
-            }
-
-            String posterPath = getItem(position).getPosterPath();
-            if (posterPath!=null) {
-                Picasso.with(mContext).load(posterPath).into(image);
-            } else {
-                Picasso.with(mContext).load(R.drawable.no_photo_movie_poster).into(image);
-            }
-
-            return view;
-        }
-    }
-
-    private class FetchMoviesTask extends AsyncTask<String, Void, ArrayList<Movie>> {
+    private class FetchMoviesTask extends AsyncTask<String, Void, Integer> {
 
         private final String LOG_TAG = FetchMoviesTask.class.getSimpleName();
+
         private final String POPULAR_MOVIES_BASE_URL = "http://api.themoviedb.org/3/discover/movie?";
         private final String SORT_PARAM = "sort_by";
         private final String VOTE_COUNT_PARAM = "vote_count.gte";
         private final String API_KEY_PARAM = "api_key";
-        //Popular Movies does not consider movies with a lower number of votes than MIN_VOTE_COUNT
-        private final String MIN_VOTE_COUNT = "100";
+
+        private static final String TMDB_RESULTS = "results";
+        private static final String TMDB_MOVIE_ID = "id";
+        private static final String TMDB_MOVIE_ORIGINAL_TITLE = "original_title";
+        private static final String TMDB_MOVIE_POSTER_PATH = "poster_path";
+        private static final String TMDB_MOVIE_OVERVIEW = "overview";
+        private static final String TMDB_MOVIE_VOTE_AVERAGE = "vote_average";
+        private static final String TMDB_MOVIE_RELEASE_DATE = "release_date";
+        private static final String TMDB_MOVIE_POPULARITY = "popularity";
+
         private final String TMDB_MOVIE_RELEASE_DATE_FORMAT = "yyyy-MM-dd";
         private final SimpleDateFormat TMDB_MOVIE_RELEASE_DATE_SDF =
                 new SimpleDateFormat(TMDB_MOVIE_RELEASE_DATE_FORMAT);
+        private final Context mContext;
+
+        public FetchMoviesTask(Context context) {
+            mContext = context;
+        }
+
         @Override
-        protected ArrayList<Movie> doInBackground(String... params) {
+        // The returned value indicates the number of retrieved results
+        protected Integer doInBackground(String... params) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
             String apiKey = getString(R.string.themoviedb_api_key);
@@ -266,7 +239,7 @@ public class MoviesFragment extends Fragment
 
                 URL url = new URL(Uri.parse(POPULAR_MOVIES_BASE_URL).buildUpon()
                         .appendQueryParameter(SORT_PARAM, sortOrder)
-                        .appendQueryParameter(VOTE_COUNT_PARAM, MIN_VOTE_COUNT)
+                        .appendQueryParameter(VOTE_COUNT_PARAM, Utility.MIN_VOTE_COUNT)
                         .appendQueryParameter(API_KEY_PARAM, apiKey)
                         .build().toString());
 
@@ -318,16 +291,12 @@ public class MoviesFragment extends Fragment
         }
 
         @Override
-        protected void onPostExecute(ArrayList<Movie> movies) {
-            if (movies!=null) {
-                MoviesFragment.this.mMoviePostersGridView.setVisibility(View.VISIBLE);
-                MoviesFragment.this.mNoDataRetrieved.setVisibility(View.INVISIBLE);
-                MoviesFragment.this.populateMovieAdapter(movies);
-            } else {
+        protected void onPostExecute(Integer results) {
+            if (results==null) {
                 //Movies data cannot be retrieved correctly
-                MoviesFragment.this.mMovieAdapter.clear();
-                MoviesFragment.this.mMoviePostersGridView.setVisibility(View.INVISIBLE);
-                MoviesFragment.this.mNoDataRetrieved.setVisibility(View.VISIBLE);
+                Toast.makeText(getActivity(), getString(R.string.no_data_retrieved_from_tmdb),
+                        Toast.LENGTH_LONG)
+                        .show();
             }
             MoviesFragment.this.mSwipeLayout.setRefreshing(false);
         }
@@ -336,50 +305,76 @@ public class MoviesFragment extends Fragment
          * Take the String representing the complete obtained movies data in JSON Format and
          * pull out the needed data
          */
-        private ArrayList<Movie> getMoviesDataFromJson(String moviesJsonStr) throws JSONException {
+        private Integer getMoviesDataFromJson(String moviesJsonStr) throws JSONException {
 
             // Base URL for all poster images
             final String TMDB_POSTER_BASE_URL = "http://image.tmdb.org/t/p/";
             // Image size that is going to be requested
             final String TMDB_IMAGE_SIZE = "w185";
 
-            JSONArray moviesArray = new JSONObject(moviesJsonStr).getJSONArray(Movie.TMDB_RESULTS);
-            ArrayList<Movie> resultMovies = new ArrayList<Movie>(moviesArray.length());
+            JSONArray moviesArray = new JSONObject(moviesJsonStr).getJSONArray(TMDB_RESULTS);
+            Vector<ContentValues> resultMovies = new Vector<ContentValues>(moviesArray.length());
+            Vector<String> resultTmdbIds = new Vector<>();
 
-            for(int i = 0; i < moviesArray.length(); i++) {
+            for(int i = 0; ((i < moviesArray.length())
+                    && (i < Integer.valueOf(Utility.MAX_MOVIES))); i++) {
                 // Get the JSON object representing the movie
                 JSONObject movieResult = moviesArray.getJSONObject(i);
 
                 // If some of the retrieved movies have no id, discard it because it's going
                 // to be no possible to do any further needed API call for them
-                if (!movieResult.has(Movie.TMDB_MOVIE_ID)) {
+                if (!movieResult.has(TMDB_MOVIE_ID)) {
                     continue;
                 }
 
                 // Get required movie data, checking for possible missing and null values
-                int movieId = movieResult.getInt(Movie.TMDB_MOVIE_ID);
+                int movieId = movieResult.getInt(TMDB_MOVIE_ID);
                 String movieOriginalTitle = checkForMissingOrNullValues(movieResult,
-                        Movie.TMDB_MOVIE_ORIGINAL_TITLE,
+                        TMDB_MOVIE_ORIGINAL_TITLE,
                         getString(R.string.no_original_title_found));
                 String posterPath = checkForMissingOrNullValues(movieResult,
-                        Movie.TMDB_MOVIE_POSTER_PATH, (String)null);
+                        TMDB_MOVIE_POSTER_PATH, (String)null);
                 String movieOverview = checkForMissingOrNullValues(movieResult,
-                        Movie.TMDB_MOVIE_OVERVIEW,
+                        TMDB_MOVIE_OVERVIEW,
                         getString(R.string.no_overview_found));
                 Double movieVoteAverage = checkForMissingOrNullValues(movieResult,
-                        Movie.TMDB_MOVIE_VOTE_AVERAGE, (Double)null);
+                        TMDB_MOVIE_VOTE_AVERAGE, (Double)null);
                 Date movieReleaseDate = checkForMissingOrNullValues(movieResult,
-                        Movie.TMDB_MOVIE_RELEASE_DATE, (Date)null);
+                        TMDB_MOVIE_RELEASE_DATE, (Date)null);
+                Double moviePopularity = checkForMissingOrNullValues(movieResult,
+                        TMDB_MOVIE_POPULARITY, (Double)null);
 
-                resultMovies.add(new Movie(movieId, movieOriginalTitle,
-                        (posterPath!=null) ?
-                                TMDB_POSTER_BASE_URL + TMDB_IMAGE_SIZE +
-                                        movieResult.getString(Movie.TMDB_MOVIE_POSTER_PATH) : null,
-                        movieOverview, movieVoteAverage, movieReleaseDate,
-                        getString(R.string.sdf_format)));
+                resultTmdbIds.add(Integer.valueOf(movieId).toString());
+
+                ContentValues movie = new ContentValues();
+                movie.put(MovieContract.MovieEntry._ID, movieId);
+                movie.put(MovieContract.MovieEntry.COLUMN_ORIGINAL_TITLE, movieOriginalTitle);
+                movie.put(MovieContract.MovieEntry.COLUMN_OVERVIEW, movieOverview);
+                movie.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH, (posterPath!=null) ?
+                        TMDB_POSTER_BASE_URL + TMDB_IMAGE_SIZE + posterPath : null);
+                movie.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE, movieVoteAverage);
+                movie.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE, movieReleaseDate.getTime());
+                movie.put(MovieContract.MovieEntry.COLUMN_POPULARITY, moviePopularity);
+
+                resultMovies.add(movie);
             }
 
-            return resultMovies;
+            // First delete existing values in DB for retrieved movies, in order to keep them
+            // correctly updated in DB
+            for (String id: resultTmdbIds) {
+                mContext.getContentResolver().delete(MovieContract.MovieEntry.CONTENT_URI,
+                        MovieProvider.sMovieSelection, new String[]{id});
+            }
+
+            // Add to DB
+            if (resultMovies.size() > 0 ) {
+                ContentValues[] values = new ContentValues[resultMovies.size()];
+                resultMovies.toArray(values);
+                mContext.getContentResolver()
+                        .bulkInsert(MovieContract.MovieEntry.CONTENT_URI, values);
+            }
+
+            return resultMovies.size();
         }
 
         private String checkForMissingOrNullValues(JSONObject jsonObject, String fieldName,

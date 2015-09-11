@@ -29,5 +29,8 @@
     <!-- Other strings -->
     <string name="share_movie_base_message">Hi! Check this movie. It looks great!! </string>
     <string name="share_movie_hashtag" translatable="false">#PopularMoviesApp</string>
+    <string name="no_data_retrieved_from_tmdb">
+        No new movie data could be retrieved from TMDB. Please, check network configuration.
+    </string>
     <string name="sdf_format">yyyy-MM-dd</string>
 </resources>

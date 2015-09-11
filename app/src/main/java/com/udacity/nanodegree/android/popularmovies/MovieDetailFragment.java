@@ -1,6 +1,10 @@
 package com.udacity.nanodegree.android.popularmovies;
 
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
 import android.content.Intent;
+import android.support.v4.content.Loader;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -18,18 +22,40 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
+import com.udacity.nanodegree.android.popularmovies.data.MovieContract;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class MovieDetailFragment extends Fragment {
+public class MovieDetailFragment extends Fragment
+        implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String LOG_TAG = MovieDetailFragment.class.getSimpleName();
     private static final String TMDB_MOVIE_BASE_URL = "https://www.themoviedb.org/movie/";
     private static final String HTML_TEXT_FORMAT =
             "<html><body style=\"text-align:justify\"> %s </body></Html>";
+    private static final int DETAIL_MOVIE_LOADER_ID = 1;
+    private static final String[] MOVIE_COLUMNS = {
+            MovieContract.MovieEntry._ID,
+            MovieContract.MovieEntry.COLUMN_ORIGINAL_TITLE,
+            MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE,
+            MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH,
+            MovieContract.MovieEntry.COLUMN_OVERVIEW,
+            MovieContract.MovieEntry.COLUMN_FAVORITED
+    };
+    // These indices are tied to MOVIE_COLUMNS. If MOVIE_COLUMNS changes, these must change too.
+    private static final int COL_ID = 0;
+    private static final int COL_ORIGINAL_TITLE = 1;
+    private static final int COL_VOTE_AVERAGE = 2;
+    private static final int COL_RELEASE_DATE = 3;
+    private static final int COL_POSTER_PATH = 4;
+    private static final int COL_OVERVIEW = 5;
+    private static final int COL_FAVORITED = 6;
 
     @Bind({R.id.movieRatingStar1, R.id.movieRatingStar2, R.id.movieRatingStar3,
            R.id.movieRatingStar4, R.id.movieRatingStar5, R.id.movieRatingStar6,
@@ -42,8 +68,15 @@ public class MovieDetailFragment extends Fragment {
     @Bind(R.id.movieOverview) WebView mMovieOverview;
     @Bind(R.id.movieRating) TextView mMovieRating;
     private String mMovieTmdbUrl;
+    private ShareActionProvider mShareActionProvider;
 
     public MovieDetailFragment() {
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(DETAIL_MOVIE_LOADER_ID, null, this);
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
@@ -60,44 +93,6 @@ public class MovieDetailFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_movie_detail, container, false);
         ButterKnife.bind(this, rootView);
 
-        Intent activityIntent = getActivity().getIntent();
-        if (activityIntent != null) {
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_ID)) {
-                int movieId = activityIntent.getIntExtra(Movie.TMDB_MOVIE_ID, 0);
-                mMovieTmdbUrl = TMDB_MOVIE_BASE_URL + Integer.valueOf(movieId).toString();
-            }
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_ORIGINAL_TITLE)) {
-                mMovieOriginalTitle.setText(activityIntent
-                        .getStringExtra(Movie.TMDB_MOVIE_ORIGINAL_TITLE));
-            }
-            String posterPath = null;
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_POSTER_PATH)) {
-                posterPath = activityIntent.getStringExtra(Movie.TMDB_MOVIE_POSTER_PATH);
-            }
-            if (posterPath!=null) {
-                Picasso.with(getActivity()).load(posterPath).into(mMoviePoster);
-            } else {
-                Picasso.with(getActivity()).load(R.drawable.no_photo_movie_poster)
-                        .into(mMoviePoster);
-            }
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_RELEASE_DATE)) {
-                mMovieReleaseDate.setText(activityIntent
-                        .getStringExtra(Movie.TMDB_MOVIE_RELEASE_DATE));
-            }
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_OVERVIEW)) {
-                mMovieOverview.loadData(String.format(HTML_TEXT_FORMAT, activityIntent
-                        .getStringExtra(Movie.TMDB_MOVIE_OVERVIEW)), "text/html; charset=utf-8",
-                        "UTF-8");
-                mMovieOverview.setBackgroundColor(Color.TRANSPARENT);
-            }
-            if (activityIntent.hasExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE)) {
-                Double voteAverage = activityIntent
-                                .getDoubleExtra(Movie.TMDB_MOVIE_VOTE_AVERAGE, 0);
-                        mMovieRating.setText(voteAverage.toString());
-                configureMovieRatingStars(voteAverage);
-            }
-        }
-
         return rootView;
     }
 
@@ -109,7 +104,7 @@ public class MovieDetailFragment extends Fragment {
         MenuItem menuItem = menu.findItem(R.id.action_share);
 
         // Get the provider and hold onto it to set/change the share intent.
-        ShareActionProvider mShareActionProvider =
+        mShareActionProvider =
                 (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
 
         // Attach an intent to this ShareActionProvider.
@@ -124,6 +119,52 @@ public class MovieDetailFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         ButterKnife.unbind(this);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Intent intent = getActivity().getIntent();
+        if (intent == null) {
+            return null;
+        }
+
+        return new CursorLoader(getActivity(),
+                intent.getData(), MOVIE_COLUMNS, null, null, null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        if (!data.moveToFirst()) {
+            return;
+        }
+        mMovieTmdbUrl = TMDB_MOVIE_BASE_URL +
+                Integer.valueOf(data.getInt(COL_ID)).toString();
+        mMovieOriginalTitle.setText(data.getString(COL_ORIGINAL_TITLE));
+        String posterPath = data.getString(COL_POSTER_PATH);
+        if (posterPath!=null) {
+            Picasso.with(getActivity()).load(posterPath).into(mMoviePoster);
+        } else {
+            Picasso.with(getActivity()).load(R.drawable.no_photo_movie_poster)
+                    .into(mMoviePoster);
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(getString(R.string.sdf_format));
+        mMovieReleaseDate.setText(sdf.format(new Date(data.getLong(COL_RELEASE_DATE))));
+        mMovieOverview.loadData(String.format(HTML_TEXT_FORMAT,
+                data.getString(COL_OVERVIEW)), "text/html; charset=utf-8", "UTF-8");
+        mMovieOverview.setBackgroundColor(Color.TRANSPARENT);
+        Double voteAverage = data.getDouble(COL_VOTE_AVERAGE);
+        mMovieRating.setText(voteAverage.toString());
+        configureMovieRatingStars(voteAverage);
+
+        // If onCreateOptionsMenu has already happened, we need to update the share intent now.
+        if (mShareActionProvider != null) {
+            mShareActionProvider.setShareIntent(createShareMovieIntent());
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        //Do nothing
     }
 
     private Intent createShareMovieIntent() {

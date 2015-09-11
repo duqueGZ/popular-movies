@@ -21,5 +21,9 @@
 
     <!-- Other strings -->
     <string name="share_movie_base_message">¡Hola! Mira esta película. ¡Tiene buena pinta!</string>
+    <string name="no_data_retrieved_from_tmdb">
+        No se han podido recuperar nuevos datos de películas de TMDB. Por favor,
+        revise la configuración de red.
+    </string>
     <string name="sdf_format">dd-MM-yyyy</string>
 </resources>

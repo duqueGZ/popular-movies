@@ -34,5 +34,8 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.udacity.nanodegree.android.popularmovies.MainActivity" />
         </activity>
+        <provider
+            android:authorities="com.udacity.nanodegree.android.popularmovies"
+            android:name=".data.MovieProvider" />
     </application>
 </manifest>
