@@ -1,23 +1,58 @@
 package com.udacity.nanodegree.android.popularmovies;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends AppCompatActivity {
+import com.udacity.nanodegree.android.popularmovies.sync.PopularMoviesSyncAdapter;
+import com.udacity.nanodegree.android.popularmovies.util.Utility;
+
+public class MainActivity extends AppCompatActivity
+        implements MoviesFragment.Callback, MovieDetailFragment.Callback {
+
+    private static final String DETAILFRAGMENT_TAG = "DFTAG";
+
+    private boolean mTwoPane;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.main_container, new MoviesFragment())
-                    .commit();
+
+        if (findViewById(R.id.movie_detail_container) != null) {
+            // The detail container view will be present only in the large-screen layouts
+            // (res/layout-sw600dp). If this view is present, then the activity should be
+            // in two-pane mode.
+            mTwoPane = true;
+            // In two-pane mode, show the detail view in this activity by
+            // adding or replacing the detail fragment using a
+            // fragment transaction.
+            if (savedInstanceState == null) {
+                MovieDetailFragment detailFragment = new MovieDetailFragment();
+                Bundle arguments = new Bundle();
+                arguments.putBoolean(MovieDetailFragment.IS_TWO_PANE, mTwoPane);
+                detailFragment.setArguments(arguments);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.movie_detail_container, detailFragment,
+                                DETAILFRAGMENT_TAG)
+                        .commit();
+            }
+        } else {
+            mTwoPane = false;
+            if (getSupportActionBar()!=null) {
+                getSupportActionBar().setElevation(0f);
+            }
         }
+
+        MoviesFragment moviesFragment = ((MoviesFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.main_container));
+        moviesFragment.setUseTwoPaneLayout(mTwoPane);
+
+        PopularMoviesSyncAdapter.initializeSyncAdapter(this);
     }
 
     @Override
@@ -37,5 +72,30 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onItemSelected(Uri dateUri) {
+        if (mTwoPane) {
+            // In two-pane mode, show the detail view in this activity by
+            // adding or replacing the detail fragment using a
+            // fragment transaction.
+            Bundle args = new Bundle();
+            args.putParcelable(MovieDetailFragment.DETAIL_URI, dateUri);
+            MovieDetailFragment fragment = new MovieDetailFragment();
+            fragment.setArguments(args);
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.movie_detail_container, fragment, DETAILFRAGMENT_TAG)
+                    .commit();
+        } else {
+            Intent intent = new Intent(this, MovieDetailActivity.class)
+                    .setData(dateUri);
+            startActivity(intent);
+        }
+    }
+
+    @Override
+    public void onTrailerItemSelected(String url) {
+        Utility.openMovieTrailer(this, url);
     }
 }

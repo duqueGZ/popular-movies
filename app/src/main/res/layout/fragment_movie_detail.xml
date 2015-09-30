@@ -1,41 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    style="@style/CustomMatchParentView">
+    style="@style/CustomMatchParentView"
+    android:id="@+id/detailRootView">
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         tools:context="com.udacity.nanodegree.android.popularmovies.MovieDetailFragment"
-        style="@style/CustomLayout"
+        style="@style/CustomRootLayout"
         android:orientation="vertical">
-        <TextView
-            style="@style/CustomLargeBoldTextView"
-            android:id="@+id/movieOriginalTitle"
-            android:layout_marginBottom="10dp" />
 
         <LinearLayout
             style="@style/CustomMatchParentView"
             android:layout_marginBottom="10dp"
             android:orientation="horizontal">
+
+            <TextView
+                style="@style/CustomLargeBoldTextView"
+                android:layout_width="0dp"
+                android:layout_weight="4"
+                android:id="@+id/movieOriginalTitle" />
+
+            <ImageButton
+                style="@style/CustomImageButton"
+                android:layout_width="0dp"
+                android:layout_weight="2"
+                android:id="@+id/buttonFavorite"
+                android:layout_gravity="left"
+                android:onClick="onFavoriteButtonClicked" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            style="@style/CustomMatchParentView"
+            android:orientation="horizontal">
+
             <ImageView
+                style="@style/CustomDetailImageView"
                 android:id="@+id/moviePoster"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight=".40"
-                android:layout_marginRight="15dp"
-                android:adjustViewBounds="true"
-                android:scaleType="fitStart" />
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:layout_marginRight="15dp" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight=".60"
-                android:orientation="vertical">
-                <TextView
-                    style="@style/CustomRatingTextView"
-                    android:id="@+id/movieRating" />
+                android:layout_weight="3"
+                android:orientation="vertical"
+                android:layout_gravity="left">
 
                 <LinearLayout
                     style="@style/CustomWrapContentView"
-                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/CustomRatingTextView"
+                        android:id="@+id/movieRating"
+                        android:layout_marginRight="10dp"/>
+                    <TextView
+                        style="@style/CustomSmallTextView"
+                        android:id="@+id/movieVoteCount" />
+                </LinearLayout>
+
+                <LinearLayout
+                    style="@style/CustomWrapContentView"
+                    android:layout_marginBottom="30dp"
                     android:orientation="horizontal">
                     <ImageView
                         style="@style/CustomWrapContentView"
@@ -87,17 +114,38 @@
                 <TextView
                     style="@style/CustomMediumItalicTextView"
                     android:id="@+id/movieReleaseDate" />
+
             </LinearLayout>
         </LinearLayout>
 
         <TextView
-            style="@style/CustomSmallBoldTextView"
+            style="@style/CustomMediumBoldTextView"
             android:id="@+id/movieOverviewLabel"
+            android:layout_marginTop="15dp"
             android:text="@string/overview_label"/>
 
         <WebView
             style="@style/CustomWrapContentView"
-            android:id="@+id/movieOverview"
-            android:layout_below="@+id/movieOverviewLabel" />
+            android:id="@+id/movieOverview" />
+
+        <TextView
+            style="@style/CustomMediumBoldTextView"
+            android:id="@+id/trailersLabel"
+            android:layout_marginTop="15dp"
+            android:text="@string/trailers_label"/>
+
+        <com.udacity.nanodegree.android.popularmovies.components.NonScrollListView
+            style="@style/CustomNonScrollListView"
+            android:id="@+id/listview_trailers" />
+
+        <TextView
+            style="@style/CustomMediumBoldTextView"
+            android:id="@+id/reviewsLabel"
+            android:layout_marginTop="15dp"
+            android:text="@string/reviews_label"/>
+
+        <com.udacity.nanodegree.android.popularmovies.components.NonScrollListView
+            style="@style/CustomNonScrollListView"
+            android:id="@+id/listview_reviews" />
     </LinearLayout>
 </ScrollView>

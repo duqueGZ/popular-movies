@@ -9,7 +9,7 @@
         <item name="android:textColorLink">@color/accent</item>
     </style>
 
-    <style name="CustomLayout" parent="CustomMatchParentView">
+    <style name="CustomRootLayout" parent="CustomMatchParentView">
         <item name="android:paddingLeft">@dimen/activity_horizontal_margin</item>
         <item name="android:paddingRight">@dimen/activity_horizontal_margin</item>
         <item name="android:paddingTop">@dimen/activity_vertical_margin</item>
@@ -27,13 +27,11 @@
 
     <style name="CustomImageView">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">135dp</item>
+        <item name="android:layout_height">160dp</item>
         <item name="android:scaleType">centerCrop</item>
     </style>
 
-    <style name="CustomCenterImageView">
-        <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">match_parent</item>
+    <style name="CustomCenterImageView" parent="CustomMatchParentView">
         <item name="android:scaleType">centerInside</item>
     </style>
 
@@ -44,19 +42,26 @@
     </style>
 
     <style name="CustomRatingTextView" parent="CustomWrapContentView">
-        <item name="android:textSize">16pt</item>
+        <item name="android:textSize">34sp</item>
     </style>
 
     <style name="CustomMediumTextView" parent="CustomWrapContentView">
         <item name="android:textAppearance">?android:attr/textAppearanceMedium</item>
     </style>
 
+    <style name="CustomSmallTextView" parent="CustomWrapContentView">
+        <item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+    </style>
+
     <style name="CustomMediumItalicTextView" parent="CustomMediumTextView">
         <item name="android:textStyle">italic</item>
     </style>
 
-    <style name="CustomSmallBoldTextView" parent="CustomWrapContentView">
-        <item name="android:textAppearance">?android:attr/textAppearanceSmall</item>
+    <style name="CustomMediumBoldTextView" parent="CustomMediumTextView">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="CustomSmallBoldTextView" parent="CustomSmallTextView">
         <item name="android:textStyle">bold</item>
     </style>
 
@@ -69,4 +74,20 @@
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">match_parent</item>
     </style>
+
+    <style name="CustomNonScrollListView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="CustomImageButton" parent="CustomWrapContentView">
+        <item name="android:background">@null</item>
+        <item name="android:gravity">center_vertical</item>
+    </style>
+
+    <style name="CustomDetailImageView" parent="CustomWrapContentView">
+        <item name="android:scaleType">fitStart</item>
+        <item name="android:adjustViewBounds">true</item>
+    </style>
+
 </resources>

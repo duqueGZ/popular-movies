@@ -9,21 +9,23 @@
     <string name="title_activity_settings">Ajustes</string>
     <string name="release_label">Estreno:</string>
     <string name="overview_label">Sinopsis:</string>
+    <string name="reviews_label">Críticas:</string>
+    <string name="trailers_label">Trailers:</string>
+    <string name="votes_label">votos</string>
 
     <!-- Settings strings -->
     <string name="pref_sort_order_label">Ordenar por</string>
     <string name="pref_sort_order_popularity_label">Más populares</string>
     <string name="pref_sort_order_rating_label">Mejor puntuadas</string>
+    <string name="pref_sort_order_favorites_label">Favoritas</string>
 
     <!-- Default values for missing data in API calls responses -->
     <string name="no_original_title_found">TÍTULO ORIGINAL NO ENCONTRADO</string>
     <string name="no_overview_found">SINOPSIS NO ENCONTRADA</string>
+    <string name="no_author_found">AUTOR NO ENCONTRADO</string>
+    <string name="no_trailer_name_found">NOMBRE DEL TRAILER NO ENCONTRADO</string>
 
     <!-- Other strings -->
     <string name="share_movie_base_message">¡Hola! Mira esta película. ¡Tiene buena pinta!</string>
-    <string name="no_data_retrieved_from_tmdb">
-        No se han podido recuperar nuevos datos de películas de TMDB. Por favor,
-        revise la configuración de red.
-    </string>
     <string name="sdf_format">dd-MM-yyyy</string>
 </resources>

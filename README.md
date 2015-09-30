@@ -1,5 +1,5 @@
 # popular-movies
-Udacity Android Developer Nanodegree. Project 1
+Udacity Android Developer Nanodegree. Projects 1 & 2
 
 In order to make the app works correctly is needed to configure and use a themoviedb.org API_KEY.
 To get one, you must to sign up for an account (https://www.themoviedb.org/account/signup) and then ask for your API_KEY
