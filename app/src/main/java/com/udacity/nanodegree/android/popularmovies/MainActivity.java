@@ -1,6 +1,9 @@
 package com.udacity.nanodegree.android.popularmovies;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -16,6 +19,7 @@ public class MainActivity extends AppCompatActivity
     private static final String DETAILFRAGMENT_TAG = "DFTAG";
 
     private boolean mTwoPane;
+    private double mSyncSeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +60,24 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+
+        registerReceiver(syncStartedReceiver,
+                new IntentFilter(PopularMoviesSyncAdapter.SYNC_STARTED));
+        registerReceiver(syncFinishedReceiver,
+                new IntentFilter(PopularMoviesSyncAdapter.SYNC_FINISHED));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        unregisterReceiver(syncStartedReceiver);
+        unregisterReceiver(syncFinishedReceiver);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
 
@@ -80,6 +102,12 @@ public class MainActivity extends AppCompatActivity
             // In two-pane mode, show the detail view in this activity by
             // adding or replacing the detail fragment using a
             // fragment transaction.
+            if (dateUri==null) {
+                MovieDetailFragment detailFragment =
+                        ((MovieDetailFragment) getSupportFragmentManager()
+                                .findFragmentById(R.id.movie_detail_container));
+                detailFragment.hideDetailLayout();
+            }
             Bundle args = new Bundle();
             args.putParcelable(MovieDetailFragment.DETAIL_URI, dateUri);
             MovieDetailFragment fragment = new MovieDetailFragment();
@@ -98,4 +126,25 @@ public class MainActivity extends AppCompatActivity
     public void onTrailerItemSelected(String url) {
         Utility.openMovieTrailer(this, url);
     }
+
+    private BroadcastReceiver syncStartedReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+           mSyncSeed = intent.getDoubleExtra(PopularMoviesSyncAdapter.SEED, 0);
+        }
+    };
+
+    private BroadcastReceiver syncFinishedReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            double finishSeed = intent.getDoubleExtra(PopularMoviesSyncAdapter.SEED, 0);
+            if (finishSeed==mSyncSeed) {
+                MoviesFragment moviesFragment = ((MoviesFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.main_container));
+                moviesFragment.stopSwipeRefreshLayout();
+            }
+        }
+    };
 }

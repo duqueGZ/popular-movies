@@ -320,6 +320,10 @@ public class MovieDetailFragment extends Fragment
         }
     }
 
+    public void hideDetailLayout() {
+        mRootView.setVisibility(View.INVISIBLE);
+    }
+
     private void onDetailMovieLoadFinished(Cursor data) {
         mMovieId = data.getInt(COL_ID);
         if (data.getInt(COL_FAVORITED)==1) {

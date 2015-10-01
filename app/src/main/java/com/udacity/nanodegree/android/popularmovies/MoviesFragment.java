@@ -98,9 +98,13 @@ public class MoviesFragment extends Fragment
             public void onItemClick(AdapterView adapterView, View view, int i, long l) {
                 Cursor cursor = (Cursor) adapterView.getItemAtPosition(i);
                 if (cursor != null) {
+                    Uri uri = null;
+                    if (cursor.getCount()>0) {
+                        uri = MovieContract.MovieEntry
+                                .buildMovieUri(cursor.getInt(COL_ID));
+                    }
                     ((Callback) getActivity())
-                            .onItemSelected(MovieContract.MovieEntry
-                                    .buildMovieUri(cursor.getInt(COL_ID)));
+                            .onItemSelected(uri);
                 }
                 mSelectedPosition = i;
             }
@@ -189,7 +193,7 @@ public class MoviesFragment extends Fragment
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        mSwipeLayout.setRefreshing(false);
+        //mSwipeLayout.setRefreshing(false);
         mMovieAdapter.swapCursor(data);
         if (data.getCount()>0) {
             MoviesFragment.this.mMoviePostersGridView.setVisibility(View.VISIBLE);
@@ -207,12 +211,20 @@ public class MoviesFragment extends Fragment
             //Movies data cannot be retrieved from DB
             MoviesFragment.this.mMoviePostersGridView.setVisibility(View.INVISIBLE);
             MoviesFragment.this.mNoDataRetrieved.setVisibility(View.VISIBLE);
+            if (mUseTwoPaneLayout) {
+                CustomRunnable customRunnable = new CustomRunnable(0);
+                mMoviePostersGridView.postDelayed(customRunnable, 0);
+            }
         }
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mMovieAdapter.swapCursor(null);
+    }
+
+    public void stopSwipeRefreshLayout() {
+        mSwipeLayout.setRefreshing(Boolean.FALSE);
     }
 
     /**

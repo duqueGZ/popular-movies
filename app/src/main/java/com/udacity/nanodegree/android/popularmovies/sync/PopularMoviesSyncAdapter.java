@@ -7,6 +7,7 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SyncRequest;
 import android.content.SyncResult;
 import android.net.Uri;
@@ -15,9 +16,9 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.udacity.nanodegree.android.popularmovies.R;
+import com.udacity.nanodegree.android.popularmovies.data.MovieContract;
 import com.udacity.nanodegree.android.popularmovies.data.MovieProvider;
 import com.udacity.nanodegree.android.popularmovies.util.Utility;
-import com.udacity.nanodegree.android.popularmovies.data.MovieContract;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -43,6 +44,9 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
     // 60 seconds (1 minute) * 180 = 3 hours
     public static final int SYNC_INTERVAL = 60 * 180;
     public static final int SYNC_FLEXTIME = SYNC_INTERVAL/3;
+    public static final String SYNC_FINISHED = "SYNC_FINISHED";
+    public static final String SYNC_STARTED = "SYNC_STARTED";
+    public static final String SEED = "SEED";
 
     private static final int REQUEST_LIMIT_REACHED_RESPONSE_CODE = 429;
     private static final String REQUEST_LIMIT_REACHED_RETRY_AFTER_HEADER = "Retry-After";
@@ -92,6 +96,11 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
         BufferedReader reader = null;
         String apiKey = getContext().getString(R.string.themoviedb_api_key);
 
+        double seed = Math.random();
+        Intent startIntent = new Intent(SYNC_STARTED);
+        startIntent.putExtra(SEED, seed);
+        getContext().sendBroadcast(startIntent);
+
         try {
             // Construct the URL for the themoviedb.org query (/discover/movie endpoint)
             // http://docs.themoviedb.apiary.io/#reference/discover/discovermovie
@@ -135,11 +144,13 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             getMoviesDataFromJson(buffer.toString());
-        } catch (InterruptedException | IOException | JSONException e) {
+            Log.d(LOG_TAG, "Popular Movies Sync correctly ended");
+        } catch (Exception e) {
             Log.e(LOG_TAG, "Error: " + e.getMessage(), e);
             // If the code didn't successfully get the movie data, there's no point in
             // attempting to parse it.
         } finally {
+            Log.d(LOG_TAG, "Finishing Popular Movies Sync");
             if (reader != null) {
                 try {
                     reader.close();
@@ -150,6 +161,9 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
             if (urlConnection != null) {
                 urlConnection.disconnect();
             }
+            Intent finishIntent = new Intent(SYNC_FINISHED);
+            finishIntent.putExtra(SEED, seed);
+            getContext().sendBroadcast(finishIntent);
         }
     }
 
@@ -435,7 +449,7 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
 
             return reviews;
 
-        } catch (InterruptedException | IOException | JSONException e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "Error: " + e.getMessage(), e);
             // If the code didn't successfully get the movie data, there's no point in
             // attempting to parse it.
@@ -548,7 +562,7 @@ public class PopularMoviesSyncAdapter extends AbstractThreadedSyncAdapter {
 
             return trailers;
 
-        } catch (InterruptedException | IOException | JSONException e) {
+        } catch (Exception e) {
             Log.e(LOG_TAG, "Error: " + e.getMessage(), e);
             // If the code didn't successfully get the movie data, there's no point in
             // attempting to parse it.
