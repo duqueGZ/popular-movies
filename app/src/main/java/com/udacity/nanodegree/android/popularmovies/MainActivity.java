@@ -131,7 +131,10 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         public void onReceive(Context context, Intent intent) {
-           mSyncSeed = intent.getDoubleExtra(PopularMoviesSyncAdapter.SEED, 0);
+            mSyncSeed = intent.getDoubleExtra(PopularMoviesSyncAdapter.SEED, 0);
+            MoviesFragment moviesFragment = ((MoviesFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.main_container));
+            moviesFragment.updateSwipeRefreshLayout(Boolean.TRUE);
         }
     };
 
@@ -143,7 +146,7 @@ public class MainActivity extends AppCompatActivity
             if (finishSeed==mSyncSeed) {
                 MoviesFragment moviesFragment = ((MoviesFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.main_container));
-                moviesFragment.stopSwipeRefreshLayout();
+                moviesFragment.updateSwipeRefreshLayout(Boolean.FALSE);
             }
         }
     };

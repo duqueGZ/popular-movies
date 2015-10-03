@@ -223,8 +223,8 @@ public class MoviesFragment extends Fragment
         mMovieAdapter.swapCursor(null);
     }
 
-    public void stopSwipeRefreshLayout() {
-        mSwipeLayout.setRefreshing(Boolean.FALSE);
+    public void updateSwipeRefreshLayout(boolean isRefreshing) {
+        mSwipeLayout.setRefreshing(isRefreshing);
     }
 
     /**
